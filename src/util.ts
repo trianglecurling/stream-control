@@ -26,6 +26,10 @@ export async function isAdmin() {
 	}
 }
 
+export function isDebugMode() {
+	return (process.env.DEBUG_MODE ?? "false").toLowerCase() === "true";
+}
+
 export function delay(ms: number) {
 	return new Promise((resolve) => setTimeout(resolve, ms));
 }
@@ -107,7 +111,7 @@ export async function countProcessInstances(
 
 export async function findFileAbove(
 	fileName: string | null | undefined,
-	startDir = srcRoot,
+	startDir = srcRoot
 ): Promise<string | undefined> {
 	if (!fileName) {
 		return undefined;

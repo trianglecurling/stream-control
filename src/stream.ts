@@ -7,13 +7,23 @@ import {
 import { spawn } from "node:child_process";
 import path from "node:path";
 import { OBSService } from "./obs.js";
-import { delay, defer, parseScenes, findFileAbove, srcRoot } from "./util.js";
+import {
+	delay,
+	defer,
+	parseScenes,
+	findFileAbove,
+	srcRoot,
+	isDebugMode,
+} from "./util.js";
 import { getStreamStatus } from "./youtube.js";
 
 let TEST_MODE = false;
-const WARN_TIME = TEST_MODE
-	? 2000
-	: parseInt(process.env.OBS_ABORT_TIME ?? "10000") || 10000;
+
+function getWarnTime() {
+	return getTestMode()
+		? 2000
+		: parseInt(process.env.OBS_ABORT_TIME ?? "10000") || 10000;
+}
 
 export const allScenes: ReadonlyMap<string, string> = await parseScenes(
 	await findFileAbove("SCENES.txt")
@@ -82,10 +92,24 @@ export class StreamManager {
 			if (streamData) {
 				await this.setStreamNamesFromMonitorData(streamData.colors);
 			}
+			const obsAutomationExe = await findFileAbove(
+				process.env.OBS_AUTOMATION_EXE
+			);
+			if (!obsAutomationExe) {
+				console.error(
+					"Could not find OBS automation exe (check env:OBS_AUTOMATION_EXE)."
+				);
+				process.exit();
+			}
+
+			if (isDebugMode()) {
+				console.log(`OBS Automation EXE: ${obsAutomationExe}`);
+			}
+
 			const startAutomationProcess = spawn(
-				path.join(srcRoot, "obs-control.exe"),
+				obsAutomationExe,
 				[
-					String(WARN_TIME),
+					String(getWarnTime()),
 					"123456", // doesn't matter
 					"1", // doesn't matter
 					"Title", // doesn't matter
@@ -104,7 +128,7 @@ export class StreamManager {
 			});
 
 			// Give the warning time to run, then see if the process exited with NZEC.
-			await Promise.race([deferred.promise, delay(WARN_TIME + 1000)]);
+			await Promise.race([deferred.promise, delay(getWarnTime() + 1000)]);
 
 			if (
 				startAutomationProcess.exitCode !== 0 &&
@@ -121,15 +145,6 @@ export class StreamManager {
 				};
 			}
 
-			const obsAutomationExe = await findFileAbove(
-				process.env.OBS_AUTOMATION_EXE
-			);
-			if (!obsAutomationExe) {
-				console.error(
-					"Could not find OBS automation exe (check env:OBS_AUTOMATION_EXE)."
-				);
-				process.exit();
-			}
 			for (let i = 0; i < scenes.length; ++i) {
 				const scene = scenes[i];
 				const title = await this.getStreamTitle(scene);
@@ -149,7 +164,7 @@ export class StreamManager {
 					{
 						detached: false,
 						stdio: "ignore",
-						cwd: __dirname,
+						cwd: srcRoot,
 					}
 				);
 				await delay(5000); // allow 5 seconds for automation to run
@@ -223,7 +238,6 @@ export class StreamManager {
 					headers: { Accept: "application/json" },
 				})
 			).json()) as StreamNamesData;
-			console.dir(data);
 			return data;
 		} catch (e) {
 			console.log(`Error getting stream names: ${e}`);
@@ -423,5 +437,5 @@ export function setTestMode(newMode: boolean) {
 }
 
 export function getTestMode() {
-	return TEST_MODE || process.env.DEBUG_MODE?.toLowerCase() === "true";
+	return TEST_MODE || isDebugMode();
 }

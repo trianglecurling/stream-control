@@ -13,13 +13,15 @@ import {
 	getTestMode,
 	validateScenes,
 } from "./stream.js";
-import { isAdmin, isWindows, findFileAbove, srcRoot } from "./util.js";
+import { isAdmin, isWindows, findFileAbove, srcRoot, isDebugMode } from "./util.js";
 
 const envPath = await findFileAbove(".env.local");
 
 if (envPath) {
 	DotEnvX.config({ path: envPath });
-	console.dir(process.env);
+	if (isDebugMode()) {
+		console.dir(process.env);
+	}
 } else {
 	console.log(
 		"No env file found. Create a .env.local file in the project root. See README.md for details."

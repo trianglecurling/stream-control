@@ -1,11 +1,12 @@
 import { OBSRequestTypes, OBSWebSocket } from "obs-websocket-js";
 import psList from "ps-list";
-import { spawn, ChildProcess } from "node:child_process";
+import { spawn, exec, ChildProcess } from "node:child_process";
 import path from "node:path";
 import {
 	countProcessInstances,
 	createObsWsPassword,
 	delay,
+	isDebugMode,
 	resolveWindowsEnvironmentVariables,
 } from "./util.js";
 
@@ -13,28 +14,45 @@ import {
 import "./types.js";
 import { OBSSceneName } from "./types.js";
 
-// Time to wait for OBS to load
-const OBS_START_TIME =
-	parseInt(process.env.OBS_START_TIME ?? "5000", 10) || 5000;
-
-// When connecting to the manually-started OBS instance
-const MANUAL_INSTANCE_PASSWORD = process.env.OBS_MANUAL_INSTANCE_PASSWORD;
-const MANUAL_INSTANCE_PORT =
-	parseInt(process.env.OBS_MANUAL_INSTANCE_PORT ?? "4454", 10) || 4454;
-
-// WS connection ports begin here at increment by 1 for each additional OBS instance
-const STARTING_PORT =
-	parseInt(process.env.OBS_CONNECTION_STARTING_PORT ?? "4455", 10) || 4455;
-
-const OBS_EXE_NAME = process.env.OBS_EXE_NAME || "obs64.exe";
-const OBS_EXE_PATH =
-	process.env.OBS_EXE_PATH || "C:\\Program Files\\obs-studio\\bin\\64bit";
-
-const DEFAULT_OBS_EXECUTABLE_PATH = path.join(OBS_EXE_NAME, OBS_EXE_PATH);
-
 interface ExtendedConnectionData {
 	portAssignment: number;
 	childProcess?: ChildProcess;
+}
+
+function getManualInstancePassword() {
+	return process.env.OBS_MANUAL_INSTANCE_PASSWORD;
+}
+
+function getManualInstancePort() {
+	return parseInt(process.env.OBS_MANUAL_INSTANCE_PORT ?? "4454", 10) || 4454;
+}
+
+function getStartingPort() {
+	return (
+		parseInt(process.env.OBS_CONNECTION_STARTING_PORT ?? "4455", 10) || 4455
+	);
+}
+
+function getObsStartTime() {
+	return parseInt(process.env.OBS_START_TIME ?? "5000", 10) || 5000;
+}
+
+function getObsExeName() {
+	return process.env.OBS_EXE_NAME || "obs64.exe";
+}
+
+function getObsExePath() {
+	return (
+		process.env.OBS_EXE_PATH || "C:\\Program Files\\obs-studio\\bin\\64bit"
+	);
+}
+
+function getPsexecPath() {
+	return process.env.PSEXEC_PATH;
+}
+
+function getDefaultObsExePath() {
+	return path.join(getObsExePath(), getObsExeName());
 }
 
 export class OBSService {
@@ -72,7 +90,7 @@ export class OBSService {
 	}
 
 	private getNextPort() {
-		let nextPort = STARTING_PORT;
+		let nextPort = getStartingPort();
 		while (true) {
 			if (this.inUsePorts.has(nextPort)) {
 				nextPort++;
@@ -89,7 +107,7 @@ export class OBSService {
 
 	// Temporally cache instance count for 1 second so successive calls in the same request don't get slow.
 	private static obsInstanceCountCache = -1;
-	public static async countObsInstances(exePath = DEFAULT_OBS_EXECUTABLE_PATH) {
+	public static async countObsInstances(exePath = getDefaultObsExePath()) {
 		if (this.obsInstanceCountCache === -1) {
 			this.obsInstanceCountCache = await countProcessInstances(exePath);
 			setTimeout(() => {
@@ -134,31 +152,59 @@ export class OBSService {
 	 */
 	public async launch(
 		scene: OBSSceneName = "IceShedVibes",
-		obsPath = DEFAULT_OBS_EXECUTABLE_PATH
+		obsPath = getDefaultObsExePath()
 	) {
 		const port = this.getNextPort();
 		const resolvedObsPath = resolveWindowsEnvironmentVariables(obsPath);
+		const password = this.#pw;
+
+		const obsCommand = `"${resolvedObsPath}" --websocket_port=${port} --websocket_password=${password} --collection Automated --scene ${scene} --multi --disable-shutdown-check --disable-updater`;
+
+		if (isDebugMode()) {
+			console.log("Running the following OBS command:");
+			console.log(obsCommand);
+		}
 
 		console.log("Starting obs with scene " + scene);
-		const obsProcess = spawn(
-			resolvedObsPath,
-			[
-				`--websocket_port=${port}`,
-				`--websocket_password=${this.#pw}`,
-				`--collection`,
-				`Automated`,
-				`--scene`,
-				`${scene}`,
-				"--multi", // don't warn when launching multiple instances
-				"--disable-shutdown-check",
-				"--disable-updater",
-			],
-			{
-				detached: false,
-				stdio: "ignore",
-				cwd: path.dirname(resolvedObsPath),
+
+		// Use runas to execute the command as the interactive user
+		const obsProcess = exec(
+			`${getPsexecPath()} -d -u ${process.env.INTERACTIVE_USER_ID} -p ${
+				process.env.INTERACTIVE_USER_PASSWORD
+			} -w "${getObsExePath()}" ${obsCommand}`,
+			{ cwd: path.dirname(resolvedObsPath) },
+			(error, stdout, stderr) => {
+				if (error) {
+					console.error(`Error: ${error.message}`);
+					return;
+				}
+				if (stderr) {
+					console.error(`Stderr: ${stderr}`);
+					return;
+				}
+				console.log(`Output: ${stdout}`);
 			}
 		);
+
+		// const obsProcess = spawn(
+		// 	resolvedObsPath,
+		// 	[
+		// 		`--websocket_port=${port}`,
+		// 		`--websocket_password=${this.#pw}`,
+		// 		`--collection`,
+		// 		`Automated`,
+		// 		`--scene`,
+		// 		`${scene}`,
+		// 		"--multi", // don't warn when launching multiple instances
+		// 		"--disable-shutdown-check",
+		// 		"--disable-updater",
+		// 	],
+		// 	{
+		// 		detached: false,
+		// 		stdio: "ignore",
+		// 		cwd: path.dirname(resolvedObsPath),
+		// 	}
+		// );
 
 		// Ensure the parent doesn't wait for the child process to exit
 		obsProcess.unref();
@@ -167,7 +213,7 @@ export class OBSService {
 		console.log(`OBS launched with PID: ${obsProcess.pid}`);
 
 		// Wait for OBS to launch
-		await delay(OBS_START_TIME);
+		await delay(getObsStartTime());
 
 		// Connect to web socket
 		const connection = await this.wsConnect(port, obsProcess);
@@ -175,12 +221,12 @@ export class OBSService {
 	}
 
 	public async tryConnectManualOBS() {
-		if (!this.inUsePorts.has(MANUAL_INSTANCE_PORT)) {
+		if (!this.inUsePorts.has(getManualInstancePort())) {
 			if ((await OBSService.countObsInstances()) > 0) {
 				await this.wsConnect(
-					MANUAL_INSTANCE_PORT,
+					getManualInstancePort(),
 					undefined,
-					MANUAL_INSTANCE_PASSWORD
+					getManualInstancePassword()
 				);
 			}
 		}

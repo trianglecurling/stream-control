@@ -1,10 +1,15 @@
 import { YouTubeSearchListResponse } from "./types.js";
 
-const youtubeApiKey = process.env.YOUTUBE_API_KEY;
-const channelId = process.env.YOUTUBE_CHANNEL_ID;
+function getYoutubeApiKey() {
+	return process.env.YOUTUBE_API_KEY;
+}
+
+function getChannelId() {
+	return process.env.YOUTUBE_CHANNEL_ID;
+}
 
 export async function getStreamStatus() {
-	const url = `https://www.googleapis.com/youtube/v3/search?part=snippet&channelId=${channelId}&eventType=live&type=video&key=${youtubeApiKey}`;
+	const url = `https://www.googleapis.com/youtube/v3/search?part=snippet&channelId=${getChannelId()}&eventType=live&type=video&key=${getYoutubeApiKey()}`;
 	const response = await fetch(url);
 	const data = (await response.json()) as YouTubeSearchListResponse;
 
@@ -21,7 +26,6 @@ export async function getStreamStatus() {
 		}
 		return data;
 	}
-
 }
 
 // Example response
