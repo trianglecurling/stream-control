@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>Documentation - Triangle Curling Stream Control</title>
+	</head>
+	<style>
+		html {
+			font-family: Verdana, Geneva, Tahoma, sans-serif;
+		}
+		code {
+			background-color: #d0ecff;
+			border-top: 1px solid #000;
+			border-bottom: 1px solid #000;
+			user-select: all;
+			padding-inline-start: 4px;
+			padding-inline-end: 4px;
+		}
+		table {
+			margin: 1em 0 1em 0;
+			border-collapse: collapse;
+			max-width: 65em;
+		}
+		p {
+			margin: 0 2em 1em 2em;
+			max-width: 50em;
+		}
+		p:last-child {
+			margin: 0 2em;
+		}
+		td,
+		th {
+			padding: 1em;
+			border: 1px solid #000;
+		}
+		tr:nth-child(2n) {
+			background-color: #fff8e1;
+		}
+		tr:nth-child(2n + 1) {
+			background-color: #ffeec8;
+		}
+		.method {
+			font-size: smaller;
+			width: 3em;
+			display: inline-block;
+		}
+		ul.endpoints > li {
+			list-style-type: none;
+			border: 1px solid #aaa;
+			border-radius: 12px;
+			margin: 2em 2em 2em 0;
+			padding: 1em;
+			background-color: #ecffea;
+		}
+		.code-block {
+			white-space: pre;
+			font-family: "Courier New", Courier, monospace;
+			overflow-y: auto;
+			width: max-content;
+			max-height: 15em;
+			background-color: #e8faff;
+			border: 1px solid #666;
+			resize: vertical;
+			padding: 1em;
+		}
+		.code-block[style*="height"] {
+			max-height: unset;
+		}
+		.tiny {
+			font-size: 8px;
+		}
+		footer {
+			text-align: center;
+		}
+	</style>
+	<body>
+		<h1>Stream Control</h1>
+		<p>
+			Welcome to the wonderful world of stream automation. This service will
+			automate various streaming tasks. Please reference the endpoint
+			documentation below to get started.
+		</p>
+		<p>
+			Please note that ALL requests must provide the correct HTTP verb. Any
+			endpoints that return data will do so in JSON format, and therefore, the
+			<code>Accept: application/json</code> header must be sent with your
+			request. To get around this requirement, you may also send the cookie
+			<code>ALLOW_DEFAULT_ACCEPT=true</code> with your request.
+		</p>
+		<ul class="endpoints">
+			<li>
+				<h2><span class="method">GET</span> <code>/</code></h2>
+				<div>Show this API documentation</div>
+			</li>
+			<li>
+				<h2><span class="method">GET</span> <code>/status/youtube</code></h2>
+				<div>Hit the YouTube API to get our stream status.</div>
+				<h3>Example Response</h3>
+				<!-- prettier-ignore -->
+				<div class="code-block">
+{
+	"kind": "youtube#searchListResponse",
+	"etag": "DvSk1dkTfChL_BEMf3l8PN7rDZ0",
+	"regionCode": "US",
+	"pageInfo": {
+		"totalResults": 1,
+		"resultsPerPage": 1
+	},
+	"items": [
+		{
+			"kind": "youtube#searchResult",
+			"etag": "8cOAPtA-HKrBgEzeN7i89ME_mjY",
+			"id": {
+				"kind": "youtube#video",
+				"videoId": "WaSGBciNFh0"
+			},
+			"snippet": {
+				"publishedAt": "2024-09-25T22:37:11Z",
+				"channelId": "UCUNFGkSgO5LOZl6myFbOaPw",
+				"title": "Mad Hatters (Wed Early) - 9/25/2024",
+				"description": "",
+				"thumbnails": {
+					"default": {
+						"url": "https://i.ytimg.com/vi/WaSGBciNFh0/default_live.jpg",
+						"width": 120,
+						"height": 90
+					},
+					"medium": {
+						"url": "https://i.ytimg.com/vi/WaSGBciNFh0/mqdefault_live.jpg",
+						"width": 320,
+						"height": 180
+					},
+					"high": {
+						"url": "https://i.ytimg.com/vi/WaSGBciNFh0/hqdefault_live.jpg",
+						"width": 480,
+						"height": 360
+					}
+				},
+				"channelTitle": "TriangleCurling",
+				"liveBroadcastContent": "live",
+				"publishTime": "2024-09-25T22:37:11Z"
+			}
+		}
+	]
+}
+			</div>
+			</li>
+			<li>
+				<h2><span class="method">GET</span> <code>/status/obs</code></h2>
+				<div>Ask OBS for our stream status.</div>
+				<h3>Example Response</h3>
+				<!-- prettier-ignore -->
+				<div class="code-block">
+{
+	"runningObsProcesses": 1,
+	"obsReportedStatuses": [
+		{
+			"outputActive": true,
+			"outputBytes": 1038079,
+			"outputCongestion": 0,
+			"outputDuration": 3033,
+			"outputReconnecting": false,
+			"outputSkippedFrames": 0,
+			"outputTimecode": "00:00:03.033",
+			"outputTotalFrames": 91
+		}
+	]
+}
+				</div>
+			</li>
+			<li>
+				<h2><span class="method">GET</span> <code>/names/current</code></h2>
+				<div>
+					Get data that represents the names currently shown on the warm room
+					monitors.
+				</div>
+				<h3>Example Response</h3>
+				<!-- prettier-ignore -->
+				<div class="code-block">
+{
+	"all": "Red Player 1\nRed Player 2\nRed Player 3\nRed Player 4",
+	"aur": "Yellow Player 1\nYellow Player 2\nYellow Player 3\nYellow Player 4",
+	"bll": "Red Player 1\nRed Player 2\nRed Player 3\nRed Player 4",
+	"bur": "Yellow Player 1\nYellow Player 2\nYellow Player 3\nYellow Player 4",
+	"cll": "Red Player 1\nRed Player 2\nRed Player 3\nRed Player 4",
+	"cur": "Yellow Player 1\nYellow Player 2\nYellow Player 3\nYellow Player 4",
+	"dll": "Red Player 1\nRed Player 2\nRed Player 3\nRed Player 4",
+	"dur": "Yellow Player 1\nYellow Player 2\nYellow Player 3\nYellow Player 4"
+}
+				</div>
+			</li>
+			<li>
+				<h2>
+					<span class="method">POST</span>
+					<code>/names/syncMonitorNamesToStream</code>
+				</h2>
+				<div>
+					Takes the data representing the names shown on the warm room monitors
+					and extracts team/skip names for display on the streams.
+				</div>
+				<table>
+					<tr class="alt">
+						<th colspan="2">Query parameters</th>
+					</tr>
+					<tr>
+						<th>Parameter name</th>
+						<th>Description</th>
+					</tr>
+					<tr class="alt">
+						<td><code>colors</code> <em>(optional)</em></td>
+						<td>
+							Must be either "rock" or "other". Defaults to "other" if not
+							provided or if an invalid value is provided. This specifies the
+							color scheme to use for names on the stream. Most of the time,
+							"other" should be used, meaning that rock colors are determined by
+							players (e.g. via coin flip) rather than assigned.
+						</td>
+					</tr>
+				</table>
+			</li>
+			<li>
+				<h2><span class="method">POST</span> <code>/obs/launch</code></h2>
+				<div>
+					Launch OBS with the given scene selected (Default: IceShedVibes).
+					Successful response includes the PID of the obs64.exe process.
+				</div>
+				<table>
+					<tr class="alt">
+						<th colspan="2">Query parameters</th>
+					</tr>
+					<tr>
+						<th>Parameter name</th>
+						<th>Description</th>
+					</tr>
+					<tr class="alt">
+						<td><code>scene</code> <em>(optional)</em></td>
+						<td>Name of the well-known OBS scene to select when OBS starts.</td>
+					</tr>
+				</table>
+				<h3>Errors</h3>
+				<ul>
+					<li>400: An invalid scene name was provided</li>
+				</ul>
+			</li>
+			<li>
+				<h2><span class="method">POST</span> <code>/obs/close</code></h2>
+				<div>Close instances of OBS.</div>
+				<table>
+					<tr class="alt">
+						<th colspan="2">Query parameters</th>
+					</tr>
+					<tr>
+						<th>Parameter name</th>
+						<th>Description</th>
+					</tr>
+					<tr class="alt">
+						<td><code>all</code> <em>(optional)</em></td>
+						<td>
+							No value needed. If specified, all instances of OBS will be
+							closed, whether or not managed by this software.
+						</td>
+					</tr>
+					<tr>
+						<td><code>pid</code> <em>(optional)</em></td>
+						<td>
+							If a PID is supplied that references a running OBS process, that
+							process will be ended.
+						</td>
+					</tr>
+				</table>
+			</li>
+			<li>
+				<h2><span class="method">GET</span> <code>/stream/title</code></h2>
+				<div>
+					Gets a computed stream title for the given scene. For the title from
+					the actual current livestream, see /status/youtube.
+				</div>
+				<table>
+					<tr class="alt">
+						<th colspan="2">Query parameters</th>
+					</tr>
+					<tr>
+						<th>Parameter name</th>
+						<th>Description</th>
+					</tr>
+					<tr class="alt">
+						<td><code>scene</code></td>
+						<td>
+							Name of the well-known OBS scene to get a title for. See
+							<code>/stream/scenes</code> for a list of scene names.
+						</td>
+					</tr>
+				</table>
+			</li>
+			<li>
+				<h2>
+					<span class="method">GET</span> <code>/stream/description</code>
+				</h2>
+				<div>
+					Gets a computed stream description for the given scene.
+					<strong>For now it simply returns a static string.</strong>
+				</div>
+				<table>
+					<tr class="alt">
+						<th colspan="2">Query parameters</th>
+					</tr>
+					<tr>
+						<th>Parameter name</th>
+						<th>Description</th>
+					</tr>
+					<tr class="alt">
+						<td><code>scene</code></td>
+						<td>
+							Name of the well-known OBS scene to get a description for. See
+							<code>/stream/scenes</code> for a list of scene names.
+						</td>
+					</tr>
+				</table>
+			</li>
+			<li>
+				<h2><span class="method">GET</span> <code>/stream/scenes</code></h2>
+				<div>
+					Gets the list of supported scene names and their descriptions.
+				</div>
+			</li>
+			<li>
+				<h2><span class="method">POST</span> <code>/stream/start</code></h2>
+				<div>Starts one or multiple streams given a list of scene names.</div>
+				<table>
+					<tr class="alt">
+						<th colspan="2">Query parameters</th>
+					</tr>
+					<tr>
+						<th>Parameter name</th>
+						<th>Description</th>
+					</tr>
+					<tr class="alt">
+						<td><code>scenes</code></td>
+						<td>
+							Name of the well-known OBS scenes to start streaming. Scenes
+							should be comma-separated with no spaces in between. See
+							<code>/stream/scenes</code> for a list of scene names.
+						</td>
+					</tr>
+				</table>
+			</li>
+			<li>
+				<h2><span class="method">POST</span> <code>/stream/stopAll</code></h2>
+				<div>Stops all streams.</div>
+			</li>
+			<li>
+				<h2><span class="method">POST</span> <code>/stream/closeAll</code></h2>
+				<div>Stops all streams and closes OBS instances.</div>
+			</li>
+			<li>
+				<h2><span class="method">GET</span> <code>/testMode</code></h2>
+				<div>
+					Gets the value of the <code>testMode</code> flag. When false,
+					automation will not actually start any streams (it will leave the
+					Manage Broadcast window filled out and ready to go).
+				</div>
+			</li>
+			<li>
+				<h2><span class="method">POST</span> <code>/testMode</code></h2>
+				<div>
+					Sets the value of the <code>testMode</code> flag. (Note: testMode will
+					always be true if the <code>DEBUG_MODE</code> environment variable is
+					set to <code>true</code>.)
+				</div>
+				<table>
+					<tr class="alt">
+						<th colspan="2">Query parameters</th>
+					</tr>
+					<tr>
+						<th>Parameter name</th>
+						<th>Description</th>
+					</tr>
+					<tr class="alt">
+						<td><code>testMode</code></td>
+						<td>
+							May be "true" or "false" to set the value of the
+							<code>testMode</code> flag.
+						</td>
+					</tr>
+				</table>
+			</li>
+		</ul>
+		<footer class="tiny">I hope you are all having a great day.</footer>
+	</body>
+</html>

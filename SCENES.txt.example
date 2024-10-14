@@ -1,0 +1,23 @@
+# All 4 sheets
+Main
+Scene showing a wide view of all 4 sheets
+
+# Single sheet views
+SheetA
+Dedicated scene for Sheet A, showing an overhead of both houses and views down each direction of the sheet.
+
+SheetB
+Dedicated scene for Sheet B, showing an overhead of both houses and views down each direction of the sheet.
+
+SheetC
+Dedicated scene for Sheet C, showing an overhead of both houses and views down each direction of the sheet.
+
+SheetD
+Dedicated scene for Sheet D, showing an overhead of both houses and views down each direction of the sheet.
+
+# Multi-sheet views
+SheetsAB
+Scene showing both Sheet A and Sheet B, with an overhead of all four houses and views down both directions of both sheets.
+
+SheetsCD
+Scene showing both Sheet C and Sheet D, with an overhead of all four houses and views down both directions of both sheets.
