@@ -98,7 +98,7 @@ export async function countProcessInstances(
 ): Promise<number> {
 	try {
 		const exeName = executable.split("\\").at(-1) ?? "obs64.exe";
-		const { stdout } = await execAsync(`tasklist`);
+		const { stdout } = await execAsync(`tasklist`, { windowsHide: true });
 		const processList = stdout.split("\n");
 		const count = processList.filter((line) =>
 			line.toLowerCase().includes(exeName.toLowerCase())

@@ -156,55 +156,62 @@ export class OBSService {
 	) {
 		const port = this.getNextPort();
 		const resolvedObsPath = resolveWindowsEnvironmentVariables(obsPath);
-		const password = this.#pw;
 
-		const obsCommand = `"${resolvedObsPath}" --websocket_port=${port} --websocket_password=${password} --collection Automated --scene ${scene} --multi --disable-shutdown-check --disable-updater`;
+		// The below commented code was an attempt at using PsExec to launch under
+		// a different user account, but I never could get it working.
 
-		if (isDebugMode()) {
-			console.log("Running the following OBS command:");
-			console.log(obsCommand);
-		}
+		// const password = this.#pw;
 
-		console.log("Starting obs with scene " + scene);
+		// const obsCommand = `"${resolvedObsPath}" --websocket_port=${port} --websocket_password=${password} --collection Automated --scene ${scene} --multi --disable-shutdown-check --disable-updater`;
 
-		// Use runas to execute the command as the interactive user
-		const obsProcess = exec(
-			`${getPsexecPath()} -d -u ${process.env.INTERACTIVE_USER_ID} -p ${
-				process.env.INTERACTIVE_USER_PASSWORD
-			} -w "${getObsExePath()}" ${obsCommand}`,
-			{ cwd: path.dirname(resolvedObsPath) },
-			(error, stdout, stderr) => {
-				if (error) {
-					console.error(`Error: ${error.message}`);
-					return;
-				}
-				if (stderr) {
-					console.error(`Stderr: ${stderr}`);
-					return;
-				}
-				console.log(`Output: ${stdout}`);
-			}
-		);
+		// if (isDebugMode()) {
+		// 	console.log("Running the following OBS command:");
+		// 	console.log(obsCommand);
+		// }
 
-		// const obsProcess = spawn(
-		// 	resolvedObsPath,
-		// 	[
-		// 		`--websocket_port=${port}`,
-		// 		`--websocket_password=${this.#pw}`,
-		// 		`--collection`,
-		// 		`Automated`,
-		// 		`--scene`,
-		// 		`${scene}`,
-		// 		"--multi", // don't warn when launching multiple instances
-		// 		"--disable-shutdown-check",
-		// 		"--disable-updater",
-		// 	],
-		// 	{
-		// 		detached: false,
-		// 		stdio: "ignore",
-		// 		cwd: path.dirname(resolvedObsPath),
+		// console.log("Starting obs using psexec with scene " + scene);
+
+		// // Use runas to execute the command as the interactive user
+		// const obsProcess = exec(
+		// 	`${getPsexecPath()} -accepteula -nobanner -i -d -u ${
+		// 		process.env.INTERACTIVE_USER_ID
+		// 	} -p ${
+		// 		process.env.INTERACTIVE_USER_PASSWORD
+		// 	} -w "${getObsExePath()}" ${obsCommand}`,
+		// 	{ cwd: path.dirname(resolvedObsPath) },
+		// 	(error, stdout, stderr) => {
+		// 		if (error) {
+		// 			console.error(`Error: ${error.message}`);
+		// 			console.log(error);
+		// 			return;
+		// 		}
+		// 		if (stderr) {
+		// 			console.error(`Stderr: ${stderr}`);
+		// 			return;
+		// 		}
+		// 		console.log(`Output: ${stdout}`);
 		// 	}
 		// );
+
+		const obsProcess = spawn(
+			resolvedObsPath,
+			[
+				`--websocket_port=${port}`,
+				`--websocket_password=${this.#pw}`,
+				`--collection`,
+				`Automated`,
+				`--scene`,
+				`${scene}`,
+				"--multi", // don't warn when launching multiple instances
+				"--disable-shutdown-check",
+				"--disable-updater",
+			],
+			{
+				detached: false,
+				stdio: "ignore",
+				cwd: path.dirname(resolvedObsPath),
+			}
+		);
 
 		// Ensure the parent doesn't wait for the child process to exit
 		obsProcess.unref();

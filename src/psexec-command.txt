@@ -1,0 +1,1 @@
+C:\utils\PsTools\PsExec.exe -accepteula -nobanner -i -d -u tcc -p TCCrules1995 -w "C:\Program Files\obs-studio\bin\64bit" "C:\Program Files\obs-studio\bin\64bit\obs64.exe" --websocket_port=4455 --websocket_password=mh8dqEGAT8XsCwbU --collection Automated --scene IceShedVibes --multi --disable-shutdown-check --disable-updater
