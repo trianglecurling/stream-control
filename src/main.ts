@@ -13,7 +13,7 @@ import {
 	getTestMode,
 	validateScenes,
 } from "./stream.js";
-import { isAdmin, isWindows, findFileAbove, srcRoot, isDebugMode } from "./util.js";
+import { isAdmin, isWindows, findFileAbove, srcRoot, isDebugMode, getBonspielName } from "./util.js";
 
 const envPath = await findFileAbove(".env.local");
 
@@ -118,6 +118,14 @@ async function init() {
 		await streamManager.setStreamNamesFromMonitorData(colors);
 		ctx.response.status = 200;
 		ctx.response.body = JSON.stringify({ success: true }, null, 4);
+	});
+
+	router.get("/bonspiel", async (ctx) => {
+		const bonspielName = getBonspielName();
+		if (bonspielName) {
+			ctx.response.status = 200;
+			ctx.response.body = JSON.stringify(bonspielName || "false");
+		}
 	});
 
 	router.get("/stream/title", async (ctx) => {
@@ -235,6 +243,7 @@ async function init() {
 			typeof ctx.query.scenes === "string"
 				? ctx.query.scenes.split(",")
 				: ctx.query.scenes ?? [];
+		const drawNumber = typeof ctx.query.drawNumber === "string" ? ctx.query.drawNumber : "";
 		const invalidScenes: string[] = [];
 		if (!validateScenes(scenes, invalidScenes)) {
 			ctx.response.status = 400;
@@ -253,7 +262,7 @@ async function init() {
 				error: `No scenes specified. Please specify scenes to start streaming using the 'scenes' query parameter with comma-separated scene names.`,
 			});
 		} else {
-			const result = await streamManager.startStreams(scenes);
+			const result = await streamManager.startStreams(scenes, drawNumber);
 			if (result.success) {
 				ctx.response.status = 200;
 				ctx.response.body = JSON.stringify({ success: true }, null, 4);

@@ -176,3 +176,26 @@ export async function parseScenes(
 	}
 	return result;
 }
+
+export function getBonspielName(date = new Date()) {
+	const month = date.getMonth() + 1;
+	const day = date.getDate();
+	const year = date.getFullYear();
+
+	if (month === 11 && year === 2024 && day >= 1 && day <= 3) {
+		return "Mixed Doubles Bonspiel";
+	}
+
+	if (month === 11 && year === 2024 && day === 30) {
+		return "Tired of Turkey";
+	}
+
+	if (month === 12 && year === 2024 && day >=6 && day <= 8) {
+		return "GNCC U18 Playdowns";
+	}
+
+	if (month === 1 && year === 2025 && (day === 4 || day === 5)) {
+		return "Triangle Junior Bonspiel";
+	}
+	return undefined;
+}

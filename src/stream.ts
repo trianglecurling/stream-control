@@ -14,6 +14,7 @@ import {
 	findFileAbove,
 	srcRoot,
 	isDebugMode,
+	getBonspielName,
 } from "./util.js";
 import { getStreamStatus } from "./youtube.js";
 
@@ -60,7 +61,7 @@ export class StreamManager {
 	}
 
 	private static mutex = false;
-	public async startStreams(scenes: OBSSceneName[]) {
+	public async startStreams(scenes: OBSSceneName[], drawNumber: string | undefined = "") {
 		// Check that this function is not currently executing.
 		if (StreamManager.mutex) {
 			return {
@@ -147,7 +148,7 @@ export class StreamManager {
 
 			for (let i = 0; i < scenes.length; ++i) {
 				const scene = scenes[i];
-				const title = await this.getStreamTitle(scene);
+				const title = await this.getStreamTitle(scene, new Date(), drawNumber);
 				const description = await this.getStreamDescription(scene);
 				const pid = await this.obsService.launch(scene);
 				await delay(6000); // allow 3 seconds for OBS to start
@@ -259,11 +260,24 @@ export class StreamManager {
 		}
 	}
 
-	public async getStreamTitle(scene: OBSSceneName, d = new Date()) {
+	public async getStreamTitle(
+		scene: OBSSceneName,
+		d = new Date(),
+		drawNum: string | undefined = undefined
+	) {
+		const bonspielName = getBonspielName(d);
 		const day = d.getDay();
 		const h = d.getHours();
 		let title = "";
-		if (day === 1) {
+		if (bonspielName) {
+			const drawNumberNum = Number(drawNum);
+			const drawNumText = drawNumberNum
+				? ` - Draw ${drawNumberNum}`
+				: drawNum
+				? ` - ${drawNum}`
+				: "";
+			title += `${bonspielName}${drawNumText}`;
+		} else if (day === 1) {
 			if (h >= 17 && h <= 19) {
 				title += "I Hate Mondays (Monday early league)";
 			} else if (h >= 20 && h <= 22) {
