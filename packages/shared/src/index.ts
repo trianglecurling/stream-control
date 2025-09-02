@@ -69,7 +69,3 @@ export const Msg = {
 	UIJobUpdate: "ui.job.update",
 	UIJobEvent: "ui.job.event",
 } as const;
-
-export function nowIso(): string {
-	return new Date().toISOString();
-}

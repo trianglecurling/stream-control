@@ -2,7 +2,7 @@ import "dotenv/config";
 import Fastify from "fastify";
 import { WebSocketServer, WebSocket } from "ws";
 import { randomUUID } from "crypto";
-import { AgentInfo, AgentState, Job, JobStatus, WSMessage, Msg, nowIso } from "@stream-control/shared";
+import { AgentInfo, AgentState, Job, JobStatus, WSMessage, Msg } from "@stream-control/shared";
 
 /**
  * Configuration
@@ -36,7 +36,7 @@ function broadcastUI<T = unknown>(type: string, payload: T) {
 	const msg: WSMessage<T> = {
 		type,
 		msgId: randomUUID(),
-		ts: nowIso(),
+		ts: new Date().toISOString(),
 		payload,
 	};
 	const data = JSON.stringify(msg);
@@ -60,8 +60,8 @@ function createJob(partial: Partial<Job> & { inlineConfig?: Record<string, unkno
 		inlineConfig: partial.inlineConfig ?? null,
 		status: "PENDING",
 		agentId: null,
-		createdAt: nowIso(),
-		updatedAt: nowIso(),
+		createdAt: new Date().toISOString(),
+		updatedAt: new Date().toISOString(),
 		startedAt: null,
 		endedAt: null,
 		error: null,
@@ -77,7 +77,7 @@ function createJob(partial: Partial<Job> & { inlineConfig?: Record<string, unkno
 function updateJob(id: string, patch: Partial<Job>) {
 	const j = jobs.get(id);
 	if (!j) return;
-	Object.assign(j, patch, { updatedAt: nowIso() });
+	Object.assign(j, patch, { updatedAt: new Date().toISOString() });
 	jobs.set(id, j);
 	broadcastUI(Msg.UIJobUpdate, j);
 }
@@ -171,7 +171,7 @@ app.post<{ Params: { id: string } }>("/v1/jobs/:id/stop", async (req, reply) => 
 	const job = jobs.get(req.params.id);
 	if (!job) return reply.code(404).send({ error: "Not Found" });
 	if (!job.agentId) {
-		updateJob(job.id, { status: "CANCELED", endedAt: nowIso() });
+		updateJob(job.id, { status: "CANCELED", endedAt: new Date().toISOString() });
 		return reply.code(202).send({ ok: true, job: jobs.get(job.id) });
 	}
 	const agent = agents.get(job.agentId);
@@ -182,7 +182,7 @@ app.post<{ Params: { id: string } }>("/v1/jobs/:id/stop", async (req, reply) => 
 	const msg: WSMessage = {
 		type: Msg.OrchestratorJobStop,
 		msgId: randomUUID(),
-		ts: nowIso(),
+		ts: new Date().toISOString(),
 		payload: { jobId: job.id, reason: "User requested", deadlineMs: STOP_GRACE_MS },
 	};
 	agent.ws.send(JSON.stringify(msg));
@@ -221,7 +221,7 @@ wssUi.on("connection", (ws) => {
 		JSON.stringify({
 			type: Msg.UIAgentUpdate,
 			msgId: randomUUID(),
-			ts: nowIso(),
+			ts: new Date().toISOString(),
 			payload: Array.from(agents.values()).map(toPublicAgent),
 		})
 	);
@@ -229,7 +229,7 @@ wssUi.on("connection", (ws) => {
 		JSON.stringify({
 			type: Msg.UIJobUpdate,
 			msgId: randomUUID(),
-			ts: nowIso(),
+			ts: new Date().toISOString(),
 			payload: Array.from(jobs.values()),
 		})
 	);
@@ -279,7 +279,7 @@ wssAgents.on("connection", (ws) => {
 					version,
 					state: "IDLE",
 					currentJobId: null,
-					lastSeenAt: nowIso(),
+					lastSeenAt: new Date().toISOString(),
 					drain: !!drain,
 					capabilities,
 					meta: {},
@@ -294,7 +294,7 @@ wssAgents.on("connection", (ws) => {
 			agent.version = version;
 			agent.capabilities = capabilities;
 			agent.drain = !!drain;
-			agent.lastSeenAt = nowIso();
+			agent.lastSeenAt = new Date().toISOString();
 			attachedAgentId = agentId;
 
 			setAgentState(agent, agent.state === "OFFLINE" ? "IDLE" : agent.state);
@@ -312,9 +312,9 @@ wssAgents.on("connection", (ws) => {
 						inlineConfig: null,
 						status: activeJob.status,
 						agentId: agent.id,
-						createdAt: nowIso(),
-						updatedAt: nowIso(),
-						startedAt: nowIso(),
+						createdAt: new Date().toISOString(),
+						updatedAt: new Date().toISOString(),
+						startedAt: new Date().toISOString(),
 						endedAt: null,
 						error: null,
 						requestedBy: "recovered",
@@ -331,7 +331,7 @@ wssAgents.on("connection", (ws) => {
 			const ok: WSMessage = {
 				type: Msg.OrchestratorHelloOk,
 				msgId: randomUUID(),
-				ts: nowIso(),
+				ts: new Date().toISOString(),
 				payload: {
 					heartbeatIntervalMs: HEARTBEAT_INTERVAL_MS,
 					heartbeatTimeoutMs: HEARTBEAT_TIMEOUT_MS,
@@ -350,7 +350,7 @@ wssAgents.on("connection", (ws) => {
 		if (!agent) return;
 
 		// Liveness update
-		agent.lastSeenAt = nowIso();
+		agent.lastSeenAt = new Date().toISOString();
 		if (agent.timers.heartbeatTimeout) {
 			clearTimeout(agent.timers.heartbeatTimeout);
 		}
@@ -366,7 +366,7 @@ wssAgents.on("connection", (ws) => {
 						if (jj && jj.status === "UNKNOWN") {
 							updateJob(j.id, {
 								status: "FAILED",
-								endedAt: nowIso(),
+								endedAt: new Date().toISOString(),
 								error: { code: "AGENT_OFFLINE", message: "Agent offline" },
 							});
 						}
@@ -401,7 +401,7 @@ wssAgents.on("connection", (ws) => {
 				};
 				const j = jobs.get(jobId);
 				if (!j) break;
-				if (status === "RUNNING" && !j.startedAt) updateJob(jobId, { status, startedAt: nowIso() });
+				if (status === "RUNNING" && !j.startedAt) updateJob(jobId, { status, startedAt: new Date().toISOString() });
 				else updateJob(jobId, { status });
 				break;
 			}
@@ -415,7 +415,7 @@ wssAgents.on("connection", (ws) => {
 				if (j) {
 					updateJob(jobId, {
 						status,
-						endedAt: nowIso(),
+						endedAt: new Date().toISOString(),
 						error: error ?? null,
 					});
 				}
@@ -453,7 +453,7 @@ async function sendAssignAndAwaitAck(agent: AgentNode, job: Job, ttlMs = 5000): 
 	const msg: WSMessage = {
 		type: Msg.OrchestratorAssignStart,
 		msgId: randomUUID(),
-		ts: nowIso(),
+		ts: new Date().toISOString(),
 		payload: {
 			jobId: job.id,
 			idempotencyKey: job.idempotencyKey ?? randomUUID(),

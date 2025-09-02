@@ -2,7 +2,7 @@ import "dotenv/config";
 import { WebSocket } from "ws";
 import { hostname } from "os";
 import { randomUUID } from "crypto";
-import { WSMessage, Msg, nowIso, JobStatus, AgentState } from "@stream-control/shared";
+import { WSMessage, Msg, JobStatus, AgentState } from "@stream-control/shared";
 
 const ORCHESTRATOR_URL = process.env.ORCHESTRATOR_URL ?? "ws://localhost:8080/agent";
 const AGENT_TOKEN = process.env.AGENT_TOKEN ?? "dev-shared-token";
@@ -25,7 +25,7 @@ function connect() {
 		const hello: WSMessage = {
 			type: Msg.AgentHello,
 			msgId: randomUUID(),
-			ts: nowIso(),
+			ts: new Date().toISOString(),
 			agentId: AGENT_ID,
 			payload: {
 				agentId: AGENT_ID,
@@ -91,7 +91,7 @@ function send<T = unknown>(type: string, payload: T, correlationId?: string) {
 		type,
 		msgId: randomUUID(),
 		correlationId: correlationId ?? null,
-		ts: nowIso(),
+		ts: new Date().toISOString(),
 		agentId: AGENT_ID,
 		payload,
 	};
