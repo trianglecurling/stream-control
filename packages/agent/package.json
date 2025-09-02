@@ -1,0 +1,22 @@
+{
+	"name": "@stream-control/agent",
+	"version": "0.1.0",
+	"main": "dist/index.js",
+	"types": "dist/index.d.ts",
+	"license": "MIT",
+	"scripts": {
+		"build": "tsc -b",
+		"dev": "tsx watch src/index.ts",
+		"start": "node dist/index.js"
+	},
+	"dependencies": {
+		"@stream-control/shared": "0.1.0",
+		"dotenv": "17.2.1",
+		"ws": "8.18.3"
+	},
+	"devDependencies": {
+		"@types/ws": "8.18.1",
+		"tsx": "4.20.4",
+		"typescript": "5.9.2"
+	}
+}

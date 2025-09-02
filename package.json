@@ -1,0 +1,18 @@
+{
+	"name": "stream-control",
+	"workspaces": [
+		"packages/*"
+	],
+	"scripts": {
+		"build": "tsc -b packages/shared packages/orchestrator packages/agent",
+		"dev:shared": "tsc -b -w packages/shared",
+		"dev:orchestrator": "npm --workspace packages/orchestrator run dev",
+		"dev:agent": "npm --workspace packages/agent run dev",
+		"dev": "concurrently -n shared,orchestrator,agent -c green,blue,magenta \"npm:dev:shared\" \"npm:dev:orchestrator\" \"npm:dev:agent\""
+	},
+	"devDependencies": {
+		"concurrently": "9.2.0",
+		"prettier": "3.6.2",
+		"typescript": "5.9.2"
+	}
+}
