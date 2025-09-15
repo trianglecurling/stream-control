@@ -68,6 +68,14 @@ function connect() {
 				onJobStop(msg);
 				break;
 			}
+			case Msg.OrchestratorJobMute: {
+				onJobMute(msg);
+				break;
+			}
+			case Msg.OrchestratorJobUnmute: {
+				onJobUnmute(msg);
+				break;
+			}
 			default:
 				break;
 		}
@@ -159,6 +167,28 @@ function onJobStop(msg: WSMessage<{ jobId: string; reason?: string; deadlineMs?:
 	const { jobId, reason } = msg.payload;
 	if (!currentJobId || currentJobId !== jobId) return;
 	fakeStop(jobId, reason);
+}
+
+function onJobMute(msg: WSMessage<{ jobId: string }>) {
+	const { jobId } = msg.payload;
+	if (!currentJobId || currentJobId !== jobId) return;
+
+	console.log(`Muting audio for job ${jobId}`);
+	// TODO: Replace with real mute functionality (e.g., OBS WebSocket, ffmpeg commands)
+
+	// Send acknowledgment back to orchestrator
+	send(Msg.AgentJobMute, { jobId, success: true });
+}
+
+function onJobUnmute(msg: WSMessage<{ jobId: string }>) {
+	const { jobId } = msg.payload;
+	if (!currentJobId || currentJobId !== jobId) return;
+
+	console.log(`Unmuting audio for job ${jobId}`);
+	// TODO: Replace with real unmute functionality (e.g., OBS WebSocket, ffmpeg commands)
+
+	// Send acknowledgment back to orchestrator
+	send(Msg.AgentJobUnmute, { jobId, success: true });
 }
 
 connect();
