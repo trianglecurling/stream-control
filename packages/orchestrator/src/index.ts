@@ -2,7 +2,7 @@ import "dotenv/config";
 import Fastify from "fastify";
 import { WebSocketServer, WebSocket } from "ws";
 import { randomUUID } from "crypto";
-import { AgentInfo, AgentState, Job, JobStatus, WSMessage, Msg } from "@stream-control/shared";
+import { AgentInfo, AgentState, Job, JobStatus, WSMessage, Msg, StreamMetadata } from "@stream-control/shared";
 
 /**
  * Configuration
@@ -187,6 +187,74 @@ app.post<{ Params: { id: string } }>("/v1/jobs/:id/stop", async (req, reply) => 
 	};
 	agent.ws.send(JSON.stringify(msg));
 	updateJob(job.id, { status: "STOPPING" });
+	return reply.code(202).send({ ok: true, job: jobs.get(job.id) });
+});
+
+// Stream metadata management
+app.get<{ Params: { id: string } }>("/v1/jobs/:id/metadata", async (req, reply) => {
+	const job = jobs.get(req.params.id);
+	if (!job) return reply.code(404).send({ error: "Not Found" });
+	return { metadata: job.streamMetadata ?? {} };
+});
+
+app.put<{
+	Params: { id: string };
+	Body: StreamMetadata;
+}>("/v1/jobs/:id/metadata", async (req, reply) => {
+	const job = jobs.get(req.params.id);
+	if (!job) return reply.code(404).send({ error: "Not Found" });
+
+	const updatedMetadata = { ...job.streamMetadata, ...req.body };
+	updateJob(job.id, { streamMetadata: updatedMetadata });
+	return reply.code(200).send({ ok: true, metadata: updatedMetadata });
+});
+
+// Mute control endpoints
+app.post<{ Params: { id: string } }>("/v1/jobs/:id/mute", async (req, reply) => {
+	const job = jobs.get(req.params.id);
+	if (!job) return reply.code(404).send({ error: "Not Found" });
+
+	const agent = agents.get(job.agentId!);
+	if (!agent || agent.state === "OFFLINE" || !agent.ws) {
+		return reply.code(409).send({ error: "Agent not available" });
+	}
+
+	const msg: WSMessage = {
+		type: Msg.OrchestratorJobMute,
+		msgId: randomUUID(),
+		ts: new Date().toISOString(),
+		payload: { jobId: job.id },
+	};
+	agent.ws.send(JSON.stringify(msg));
+
+	// Update local metadata
+	const updatedMetadata = { ...job.streamMetadata, isMuted: true };
+	updateJob(job.id, { streamMetadata: updatedMetadata });
+
+	return reply.code(202).send({ ok: true, job: jobs.get(job.id) });
+});
+
+app.post<{ Params: { id: string } }>("/v1/jobs/:id/unmute", async (req, reply) => {
+	const job = jobs.get(req.params.id);
+	if (!job) return reply.code(404).send({ error: "Not Found" });
+
+	const agent = agents.get(job.agentId!);
+	if (!agent || agent.state === "OFFLINE" || !agent.ws) {
+		return reply.code(409).send({ error: "Agent not available" });
+	}
+
+	const msg: WSMessage = {
+		type: Msg.OrchestratorJobUnmute,
+		msgId: randomUUID(),
+		ts: new Date().toISOString(),
+		payload: { jobId: job.id },
+	};
+	agent.ws.send(JSON.stringify(msg));
+
+	// Update local metadata
+	const updatedMetadata = { ...job.streamMetadata, isMuted: false };
+	updateJob(job.id, { streamMetadata: updatedMetadata });
+
 	return reply.code(202).send({ ok: true, job: jobs.get(job.id) });
 });
 
@@ -428,6 +496,30 @@ wssAgents.on("connection", (ws) => {
 			case Msg.AgentError: {
 				agent.error = msg.payload;
 				setAgentState(agent, "ERROR");
+				break;
+			}
+			case Msg.AgentJobMute: {
+				const { jobId, success } = msg.payload as {
+					jobId: string;
+					success: boolean;
+				};
+				const j = jobs.get(jobId);
+				if (j) {
+					const updatedMetadata = { ...j.streamMetadata, isMuted: success };
+					updateJob(jobId, { streamMetadata: updatedMetadata });
+				}
+				break;
+			}
+			case Msg.AgentJobUnmute: {
+				const { jobId, success } = msg.payload as {
+					jobId: string;
+					success: boolean;
+				};
+				const j = jobs.get(jobId);
+				if (j) {
+					const updatedMetadata = { ...j.streamMetadata, isMuted: !success };
+					updateJob(jobId, { streamMetadata: updatedMetadata });
+				}
 				break;
 			}
 			default:

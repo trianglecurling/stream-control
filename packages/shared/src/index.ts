@@ -26,6 +26,17 @@ export interface AgentInfo {
 	error?: { code: string; message: string } | null;
 }
 
+export interface StreamMetadata {
+	title?: string;
+	description?: string;
+	viewers?: number;
+	publicUrl?: string;
+	adminUrl?: string;
+	isMuted?: boolean;
+	streamId?: string;
+	platform?: string; // e.g., "youtube", "twitch", etc.
+}
+
 export interface Job {
 	id: string;
 	templateId?: string | null;
@@ -40,6 +51,7 @@ export interface Job {
 	requestedBy: string;
 	idempotencyKey?: string;
 	restartPolicy?: "never" | "onFailure";
+	streamMetadata?: StreamMetadata;
 }
 
 export interface WSMessage<T = unknown> {
@@ -59,11 +71,15 @@ export const Msg = {
 	AgentJobLog: "agent.job.log",
 	AgentJobStopped: "agent.job.stopped",
 	AgentError: "agent.error",
+	AgentJobMute: "agent.job.mute",
+	AgentJobUnmute: "agent.job.unmute",
 
 	OrchestratorHelloOk: "orchestrator.hello.ok",
 	OrchestratorAssignStart: "orchestrator.assign.start",
 	OrchestratorJobStop: "orchestrator.job.stop",
 	OrchestratorJobKill: "orchestrator.job.kill",
+	OrchestratorJobMute: "orchestrator.job.mute",
+	OrchestratorJobUnmute: "orchestrator.job.unmute",
 
 	UIAgentUpdate: "ui.agent.update",
 	UIJobUpdate: "ui.job.update",

@@ -1,0 +1,221 @@
+ORCHESTRATOR API UPDATES - Stream Control Integration
+==========================================================
+
+NEW DATA TYPES
+--------------
+
+Added to @stream-control/shared:
+
+export interface StreamMetadata {
+  title?: string;
+  description?: string;
+  viewers?: number;
+  publicUrl?: string;
+  adminUrl?: string;
+  isMuted?: boolean;
+  streamId?: string;
+  platform?: string; // e.g., "youtube", "twitch", etc.
+}
+
+export interface Job {
+  id: string;
+  templateId?: string | null;
+  inlineConfig?: Record<string, unknown> | null;
+  status: JobStatus;
+  agentId?: string | null;
+  createdAt: string;
+  updatedAt: string;
+  startedAt?: string | null;
+  endedAt?: string | null;
+  error?: { code: string; message: string; detail?: unknown } | null;
+  requestedBy: string;
+  idempotencyKey?: string;
+  restartPolicy?: "never" | "onFailure";
+  streamMetadata?: StreamMetadata; // ← NEW FIELD
+}
+
+NEW WEBSOCKET MESSAGE TYPES
+---------------------------
+
+Added message types for mute control:
+
+export const Msg = {
+  // ... existing messages ...
+
+  // NEW: Orchestrator → Agent commands
+  OrchestratorJobMute: "orchestrator.job.mute",
+  OrchestratorJobUnmute: "orchestrator.job.unmute",
+
+  // NEW: Agent → Orchestrator acknowledgments
+  AgentJobMute: "agent.job.mute",
+  AgentJobUnmute: "agent.job.unmute",
+
+  // ... existing messages ...
+} as const;
+
+NEW REST API ENDPOINTS
+----------------------
+
+STREAM METADATA MANAGEMENT:
+
+GET /v1/jobs/:id/metadata
+- Returns: { metadata: StreamMetadata }
+- Gets current stream metadata for a job
+
+PUT /v1/jobs/:id/metadata
+Content-Type: application/json
+
+{
+  "title": "My Live Stream",
+  "description": "Streaming awesome content!",
+  "viewers": 1234,
+  "publicUrl": "https://youtube.com/watch?v=abc123",
+  "adminUrl": "https://studio.youtube.com/video/abc123",
+  "platform": "youtube",
+  "streamId": "abc123"
+}
+
+- Returns: { ok: true, metadata: StreamMetadata }
+- Updates stream metadata (all fields optional, merges with existing)
+
+AUDIO CONTROL:
+
+POST /v1/jobs/:id/mute
+- Returns: { ok: true, job: Job }
+- Sends mute command to responsible agent
+- Returns 409 if agent unavailable
+
+POST /v1/jobs/:id/unmute
+- Returns: { ok: true, job: Job }
+- Sends unmute command to responsible agent
+- Returns 409 if agent unavailable
+
+UPDATED JOB DATA STRUCTURE
+--------------------------
+
+Jobs now include streamMetadata field that gets updated in real-time:
+
+{
+  "id": "job-123",
+  "status": "RUNNING",
+  "agentId": "agent-456",
+  // ... other fields ...
+  "streamMetadata": {
+    "title": "Live Coding Session",
+    "description": "Building features!",
+    "viewers": 42,
+    "publicUrl": "https://youtube.com/watch?v=abc123",
+    "isMuted": false,
+    "platform": "youtube"
+  }
+}
+
+NEW WEBSOCKET MESSAGES TO HANDLE
+--------------------------------
+
+ORCHESTRATOR COMMANDS (if you're implementing an agent):
+
+{
+  "type": "orchestrator.job.mute",
+  "msgId": "uuid",
+  "ts": "2024-01-01T00:00:00.000Z",
+  "payload": {
+    "jobId": "job-123"
+  }
+}
+
+{
+  "type": "orchestrator.job.unmute",
+  "msgId": "uuid",
+  "ts": "2024-01-01T00:00:00.000Z",
+  "payload": {
+    "jobId": "job-123"
+  }
+}
+
+AGENT ACKNOWLEDGMENTS (if you're implementing an agent):
+
+{
+  "type": "agent.job.mute",
+  "payload": {
+    "jobId": "job-123",
+    "success": true
+  }
+}
+
+{
+  "type": "agent.job.unmute",
+  "payload": {
+    "jobId": "job-123",
+    "success": true
+  }
+}
+
+INTEGRATION EXAMPLES
+--------------------
+
+NODE.JS CLIENT UPDATES:
+
+// Update stream metadata
+await fetch(`http://localhost:8080/v1/jobs/${jobId}/metadata`, {
+  method: 'PUT',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    title: 'My Awesome Stream',
+    description: 'Live streaming amazing content!',
+    platform: 'youtube'
+  })
+});
+
+// Control audio
+await fetch(`http://localhost:8080/v1/jobs/${jobId}/mute`, {
+  method: 'POST'
+});
+
+// Handle WebSocket updates with new metadata
+ws.on('message', (data) => {
+  const message = JSON.parse(data.toString());
+  if (message.payload.streamMetadata) {
+    console.log('Stream metadata updated:', message.payload.streamMetadata);
+  }
+});
+
+PYTHON CLIENT UPDATES:
+
+import requests
+
+# Update metadata
+metadata = {
+    "title": "Python Stream",
+    "description": "Streaming from Python client",
+    "platform": "custom"
+}
+requests.put(f"http://localhost:8080/v1/jobs/{job_id}/metadata", json=metadata)
+
+# Control audio
+requests.post(f"http://localhost:8080/v1/jobs/{job_id}/mute")
+requests.post(f"http://localhost:8080/v1/jobs/{job_id}/unmute")
+
+# Handle WebSocket messages with metadata
+def on_message(ws, message):
+    data = json.loads(message)
+    if 'streamMetadata' in data.get('payload', {}):
+        print(f"Metadata updated: {data['payload']['streamMetadata']}")
+
+MIGRATION NOTES
+---------------
+
+1. Existing job endpoints (GET /v1/jobs/:id, GET /v1/jobs) now return the streamMetadata field
+2. No breaking changes - all existing functionality remains the same
+3. Optional fields - streamMetadata is optional and may be undefined for older jobs
+4. Real-time updates - UI clients will receive job updates when metadata changes
+5. Agent compatibility - Existing agents continue to work; new mute commands are optional
+
+KEY FEATURES NOW AVAILABLE
+--------------------------
+
+✅ Stream Metadata: Title, description, viewer counts, URLs
+✅ Real-time Mute Control: Mute/unmute commands via REST + WebSocket
+✅ Platform Integration: Support for YouTube, Twitch, etc.
+✅ Viewer Statistics: Track and update viewer counts
+✅ Enhanced Monitoring: Better stream state visibility
